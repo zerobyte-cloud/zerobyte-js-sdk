@@ -4,8 +4,10 @@ The JavaScript client for ZeroByte, an end-to-end encrypted relay between two
 paired devices of one app. It runs in browsers, Node 20+, Deno, Bun and
 Cloudflare Workers. HKDF and SHA-256 come from WebCrypto. ChaCha20-Poly1305,
 which WebCrypto does not provide, comes from
-[`@noble/ciphers`](https://github.com/paulmillr/noble-ciphers) (MIT, audited),
-the only dependency. Type definitions are included.
+[`@noble/ciphers`](https://github.com/paulmillr/noble-ciphers) (MIT, audited).
+The timeline entry point hashes synchronously, which WebCrypto cannot, so it
+uses [`@noble/hashes`](https://github.com/paulmillr/noble-hashes) (MIT,
+audited). Those are the only dependencies. Type definitions are included.
 
 ## How it works
 
@@ -23,7 +25,7 @@ The wire format is specified in
 The package is not on npm yet. Install it from GitHub:
 
 ```sh
-npm install github:zerobyte-cloud/zerobyte-js-sdk#v1.1.0
+npm install github:zerobyte-cloud/zerobyte-js-sdk#v1.2.0
 ```
 
 It installs as `@zerobyte-cloud/sdk`.
@@ -131,6 +133,47 @@ for await (const event of channel.events()) {
 `watch` and signal sockets send `ping` every 30 seconds, which keeps NATs open
 and tells the relay the reader is awake, so it sends no push.
 
+### Timeline
+
+`@zerobyte-cloud/sdk/timeline` keeps one keyed state on both devices and sends
+only what changed, as commits that every device merges into the same order
+([Timeline v1](https://github.com/zerobyte-cloud/zerobyte-protocol/blob/master/timeline-v1.md)).
+A key's entry is the one with the latest stamp, so both copies converge
+whatever order things arrive in, and a change made after seeing another
+always wins over it.
+
+```js
+import { Direction, Notify } from "@zerobyte-cloud/sdk";
+import { Timeline, TimelineRelay, TimelineSlot } from "@zerobyte-cloud/sdk/timeline";
+
+const timeline = saved ? Timeline.decode(saved) : new Timeline();
+
+// Setting a key to the value it already holds stages nothing.
+timeline.set(new TimelineSlot("plan", plan.id), planBytes);
+
+const outcome = await TimelineRelay.sync(timeline, {
+  credentials,
+  transport: relay,
+  sends: Direction.C2P,
+  notify: Notify.SILENT,
+  persist: (t) => save(t.encode()),
+});
+
+for (const update of outcome.updates) {
+  apply(update.slot, update.value); // null: deleted
+}
+```
+
+- A device that can produce its own values again (from a database, say) creates
+  its timeline with `forgetsOwnValues` naming those collections and passes
+  `values` to `sync`; the timeline then keeps only their digests.
+- Two devices on the same network can skip the relay: send
+  `encodeMessage(timeline.state())`, answer the other's state with
+  `timeline.catchUp(heads)` and `receive` each part.
+- A value must fit in one message (1 MiB); split larger values over keys.
+- Replica ids, commit ids and digests are lowercase hex; clocks and sequences
+  are `BigInt`s.
+
 ## Testing
 
 ```sh
@@ -138,7 +181,8 @@ npm install
 npm test
 ```
 
-This runs the protocol vectors and the `Link` tests. To also test against a
+This runs the protocol and timeline vectors, the `Link` tests and the timeline
+relay tests. To also test against a
 real relay, start one locally (see zerobyte-relay) and run:
 
 ```sh
@@ -148,9 +192,10 @@ RELAY_BASE=http://127.0.0.1:8080/v1/ RELAY_APP=<app id> npm test
 For the extensions, add an app with `signal` and `push=<topic>` and set
 `RELAY_SIGNAL_APP=<that app id>` as well.
 
-`test/relay-v1.json` is copied from the independent reference in
+`test/relay-v1.json` and `test/timeline.json` are copied from the independent
+reference in
 [zerobyte-protocol](https://github.com/zerobyte-cloud/zerobyte-protocol/tree/master/spec).
-Never regenerate it from this package.
+Never regenerate them from this package.
 
 ## Licence
 

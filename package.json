@@ -1,6 +1,6 @@
 {
   "name": "@zerobyte-cloud/sdk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "ZeroByte SDK for the web and JavaScript runtimes: end-to-end encrypted relay between paired devices (Relay Protocol v1).",
   "license": "Apache-2.0",
   "author": "Szymon Michalik",
@@ -22,6 +22,10 @@
     "./fcm": {
       "types": "./src/fcm.d.ts",
       "default": "./src/fcm.js"
+    },
+    "./timeline": {
+      "types": "./src/timeline.d.ts",
+      "default": "./src/timeline.js"
     }
   },
   "files": [
@@ -38,7 +42,8 @@
     "test": "node --test"
   },
   "dependencies": {
-    "@noble/ciphers": "2.4.0"
+    "@noble/ciphers": "2.4.0",
+    "@noble/hashes": "2.4.0"
   },
   "keywords": [
     "end-to-end encryption",
