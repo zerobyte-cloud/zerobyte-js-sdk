@@ -1,10 +1,10 @@
 {
   "name": "@zerobyte-cloud/sdk",
   "version": "1.2.0",
-  "description": "ZeroByte SDK for the web and JavaScript runtimes: end-to-end encrypted relay between paired devices (Relay Protocol v1).",
+  "description": "ZeroByte SDK for the web and JavaScript runtimes: end-to-end encrypted relay between paired devices (Relay Protocol v1), and one keyed state kept on both, synced as commits (Timeline v1).",
   "license": "Apache-2.0",
   "author": "Szymon Michalik",
-  "homepage": "https://docs.zerobyte.cloud/sdk/web/",
+  "homepage": "https://docs.zerobyte.cloud/sdk/javascript/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zerobyte-cloud/zerobyte-js-sdk.git"
@@ -50,6 +50,7 @@
     "relay",
     "chacha20-poly1305",
     "hkdf",
-    "sync"
+    "sync",
+    "timeline"
   ]
 }
